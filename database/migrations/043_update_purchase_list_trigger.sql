@@ -44,4 +44,4 @@ UPDATE filaments
 SET minimum_quantity_override = minimum_quantity_override;
 
 -- Update schema version
-INSERT OR IGNORE INTO schema_versions (version) VALUES (41); 
+INSERT OR IGNORE INTO schema_versions (version) VALUES (43); 
