@@ -377,6 +377,7 @@ app.get('/api/print-queue', async (req, res) => {
         
         res.json(formattedItems);
     } catch (error) {
+        console.error('Error fetching print queue:', error); // Log the specific error
         res.status(500).json({ error: 'Failed to fetch print queue' });
     }
 });

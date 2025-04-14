@@ -25,7 +25,9 @@ interface Settings {
   filament_spool_price: number;
   desired_profit_margin: number;
   packaging_cost: number;
-  [key: string]: number;
+  company_name_1?: string;
+  company_name_2?: string;
+  [key: string]: number | string | undefined;
 }
 
 const ProductList = ({
@@ -166,7 +168,7 @@ const ProductList = ({
     setEditingProduct(null);
   };
 
-  const handleSettingsChange = (key: keyof Settings, value: number) => {
+  const handleSettingsChange = (key: keyof Settings, value: number | string) => {
     setSettings({
       ...settings,
       [key]: value
@@ -282,6 +284,36 @@ const ProductList = ({
                     Cost of packaging per piece (default: $0.50)
                   </p>
                 </div>
+                
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 uppercase tracking-wider mb-1">
+                    Company Name 1
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.company_name_1 || "Super Fantastic"}
+                    onChange={(e) => handleSettingsChange('company_name_1', e.target.value)}
+                    className="w-full p-2 border border-gray-300 focus:ring-black focus:border-black"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    First company name (default: "Super Fantastic")
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 uppercase tracking-wider mb-1">
+                    Company Name 2
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.company_name_2 || "Cedar & Sail"}
+                    onChange={(e) => handleSettingsChange('company_name_2', e.target.value)}
+                    className="w-full p-2 border border-gray-300 focus:ring-black focus:border-black"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Second company name (default: "Cedar & Sail")
+                  </p>
+                </div>
               </div>
               <div className="mt-4 flex justify-end">
                 <button
@@ -333,8 +365,12 @@ const ProductList = ({
                     onChange={(e) => setFilterBusiness(e.target.value)}
                   >
                     <option value="">All Businesses</option>
-                    <option value="Super Fantastic">Super Fantastic</option>
-                    <option value="Cedar & Sail">Cedar & Sail</option>
+                    <option value={settings.company_name_1 || "Super Fantastic"}>
+                      {settings.company_name_1 || "Super Fantastic"}
+                    </option>
+                    <option value={settings.company_name_2 || "Cedar & Sail"}>
+                      {settings.company_name_2 || "Cedar & Sail"}
+                    </option>
                   </select>
                 </div>
               </div>
@@ -535,4 +571,4 @@ const ProductList = ({
   );
 };
 
-export default ProductList; 
+export default ProductList;

@@ -14,7 +14,9 @@ interface SettingsProps {
     platform_fee_percentage?: number;
     default_markup?: number;
     global_spool_price?: number;
-    [key: string]: number | undefined;
+    company_name_1?: string;
+    company_name_2?: string;
+    [key: string]: number | string | undefined;
   };
   onUpdateSettings: (newSettings: any) => void;
 }
@@ -29,12 +31,21 @@ const Settings = ({ settings, onUpdateSettings }: SettingsProps) => {
   }, [settings]);
 
   const handleChange = (key: string, value: string) => {
-    const numValue = parseFloat(value);
-    if (!isNaN(numValue) || value === '') {
+    // For company name fields, store as string
+    if (key === 'company_name_1' || key === 'company_name_2') {
       setFormSettings({
         ...formSettings,
-        [key]: value === '' ? 0 : numValue
+        [key]: value
       });
+    } else {
+      // For numeric fields, parse as number
+      const numValue = parseFloat(value);
+      if (!isNaN(numValue) || value === '') {
+        setFormSettings({
+          ...formSettings,
+          [key]: value === '' ? 0 : numValue
+        });
+      }
     }
   };
 
@@ -83,6 +94,45 @@ const Settings = ({ settings, onUpdateSettings }: SettingsProps) => {
       )}
       
       <form onSubmit={handleSubmit} className="space-y-6 pb-6">
+        <div className="border-2 border-black">
+          <div className="bg-black text-white p-2 text-xs font-medium uppercase tracking-wider">
+            Company Settings
+          </div>
+          <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+            <div>
+              <label className="block text-sm font-medium text-black mb-1">
+                Company Name 1
+              </label>
+              <input
+                type="text"
+                value={formSettings.company_name_1 || ''}
+                onChange={(e) => handleChange('company_name_1', e.target.value)}
+                disabled={!isEditing}
+                className="w-full p-2 border border-black bg-white text-black disabled:bg-gray-100"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Default: "Super Fantastic"
+              </p>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-black mb-1">
+                Company Name 2
+              </label>
+              <input
+                type="text"
+                value={formSettings.company_name_2 || ''}
+                onChange={(e) => handleChange('company_name_2', e.target.value)}
+                disabled={!isEditing}
+                className="w-full p-2 border border-black bg-white text-black disabled:bg-gray-100"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Default: "Cedar & Sail"
+              </p>
+            </div>
+          </div>
+        </div>
+        
         <div className="border-2 border-black">
           <div className="bg-black text-white p-2 text-xs font-medium uppercase tracking-wider">
             General Settings
@@ -231,7 +281,7 @@ const Settings = ({ settings, onUpdateSettings }: SettingsProps) => {
                 type="number"
                 step="1"
                 min="0"
-                value={formSettings.desired_markup ?? (formSettings.desired_profit_margin * 2)}
+                value={formSettings.desired_markup ?? (typeof formSettings.desired_profit_margin === 'number' ? formSettings.desired_profit_margin * 2 : 0)}
                 onChange={(e) => handleChange('desired_markup', e.target.value)}
                 disabled={!isEditing}
                 className="w-full p-2 border border-black bg-white text-black disabled:bg-gray-100"
@@ -247,7 +297,7 @@ const Settings = ({ settings, onUpdateSettings }: SettingsProps) => {
                 step="0.01"
                 min="0"
                 max="1"
-                value={formSettings.default_markup ?? (formSettings.desired_markup / 100)}
+                value={formSettings.default_markup ?? (typeof formSettings.desired_markup === 'number' ? formSettings.desired_markup / 100 : 0)}
                 onChange={(e) => handleChange('default_markup', e.target.value)}
                 disabled={!isEditing}
                 className="w-full p-2 border border-black bg-white text-black disabled:bg-gray-100"

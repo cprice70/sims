@@ -273,7 +273,9 @@ export interface Settings {
     filament_spool_price: number;
     desired_profit_margin: number;
     packaging_cost: number;
-    [key: string]: number;
+    company_name_1?: string;
+    company_name_2?: string;
+    [key: string]: number | string | undefined;
 }
 
 export const fetchSettings = async (): Promise<Settings> => {
@@ -282,9 +284,20 @@ export const fetchSettings = async (): Promise<Settings> => {
 
     const data = await response.json();
 
-    // Convert string values to numbers
+    // Convert string values to numbers or keep as strings based on key
     return Object.entries(data).reduce((acc, [key, value]) => {
-        acc[key] = parseFloat(value as string) || 0;
+        if (value === undefined) {
+            return acc;
+        }
+        
+        // Keep company names as strings
+        if (key === 'company_name_1' || key === 'company_name_2') {
+            acc[key] = value as string;
+        } else {
+            // Convert other values to numbers
+            const numValue = parseFloat(value as string);
+            acc[key] = isNaN(numValue) ? 0 : numValue;
+        }
         return acc;
     }, {} as Settings);
 };
@@ -292,6 +305,9 @@ export const fetchSettings = async (): Promise<Settings> => {
 export const updateSettings = async (settings: Settings): Promise<Settings> => {
     // Convert numbers to strings for API, preserving zero values
     const stringSettings = Object.entries(settings).reduce((acc, [key, value]) => {
+        if (value === undefined) {
+            return acc;
+        }
         acc[key] = value === 0 ? '0' : value.toString();
         return acc;
     }, {} as Record<string, string>);
@@ -308,10 +324,20 @@ export const updateSettings = async (settings: Settings): Promise<Settings> => {
 
     const data = await response.json();
 
-    // Convert string values back to numbers, preserving zero values
+    // Convert string values back to numbers or keep as strings based on key
     return Object.entries(data).reduce((acc, [key, value]) => {
-        const numValue = parseFloat(value as string);
-        acc[key] = isNaN(numValue) ? 0 : numValue;
+        if (value === undefined) {
+            return acc;
+        }
+        
+        // Keep company names as strings
+        if (key === 'company_name_1' || key === 'company_name_2') {
+            acc[key] = value as string;
+        } else {
+            // Convert other values to numbers
+            const numValue = parseFloat(value as string);
+            acc[key] = isNaN(numValue) ? 0 : numValue;
+        }
         return acc;
     }, {} as Settings);
 };
