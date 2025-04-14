@@ -179,10 +179,29 @@ app.put('/api/filaments/:id', async (req, res) => {
         delete updates.created_at;  // Remove created_at from updates
         updates.updated_at = new Date().toISOString();
 
-        const fields = Object.keys(updates);
-        const placeholders = fields.map(() => '?').join(', ');
+        // Define allowed fields to prevent SQL injection
+        const allowedFields = [
+            'name', 'material', 'color', 'color2', 'color3', 
+            'quantity', 'minimum_quantity', 'manufacturer', 
+            'notes', 'cost', 'updated_at'
+        ];
+        
+        // Filter out any fields that aren't in the allowed list
+        const validUpdates = Object.keys(updates)
+            .filter(key => allowedFields.includes(key))
+            .reduce((obj, key) => {
+                obj[key] = updates[key];
+                return obj;
+            }, {} as Record<string, any>);
+            
+        if (Object.keys(validUpdates).length === 0) {
+            return res.status(400).json({ error: 'No valid fields to update' });
+        }
+
+        // Create parameterized query with only valid fields
+        const fields = Object.keys(validUpdates);
         const setClause = fields.map(field => `${field} = ?`).join(', ');
-        const values = fields.map(field => updates[field]);
+        const values = fields.map(field => validUpdates[field]);
 
         await db.run(
             `UPDATE filaments SET ${setClause} WHERE id = ?`,
@@ -469,9 +488,27 @@ app.put('/api/purchase-list/:id', async (req, res) => {
         
         updates.updated_at = new Date().toISOString();
 
-        const fields = Object.keys(updates);
+        // Define allowed fields to prevent SQL injection
+        const allowedFields = [
+            'filament_id', 'quantity', 'purchased', 'updated_at', 'notes'
+        ];
+        
+        // Filter out any fields that aren't in the allowed list
+        const validUpdates = Object.keys(updates)
+            .filter(key => allowedFields.includes(key))
+            .reduce((obj, key) => {
+                obj[key] = updates[key];
+                return obj;
+            }, {} as Record<string, any>);
+            
+        if (Object.keys(validUpdates).length === 0) {
+            return res.status(400).json({ error: 'No valid fields to update' });
+        }
+
+        // Create parameterized query with only valid fields
+        const fields = Object.keys(validUpdates);
         const setClause = fields.map(field => `${field} = ?`).join(', ');
-        const values = fields.map(field => updates[field]);
+        const values = fields.map(field => validUpdates[field]);
 
         await db.run(
             `UPDATE purchase_list SET ${setClause} WHERE id = ?`,
@@ -662,15 +699,33 @@ app.put('/api/parts/:id', async (req, res) => {
     delete updates.printer_ids; // Remove printer_ids as we'll handle them separately
     updates.updated_at = new Date().toISOString();
     
-    console.log('Updates after cleanup:', JSON.stringify(updates, null, 2));
+    // Define allowed fields to prevent SQL injection
+    const allowedFields = [
+      'name', 'description', 'quantity', 'minimum_quantity',
+      'supplier', 'part_number', 'price', 'link', 'notes', 'updated_at'
+    ];
+    
+    // Filter out any fields that aren't in the allowed list
+    const validUpdates = Object.keys(updates)
+      .filter(key => allowedFields.includes(key))
+      .reduce((obj, key) => {
+        obj[key] = updates[key];
+        return obj;
+      }, {} as Record<string, any>);
+      
+    if (Object.keys(validUpdates).length === 0) {
+      return res.status(400).json({ error: 'No valid fields to update' });
+    }
+    
+    console.log('Updates after cleanup and validation:', JSON.stringify(validUpdates, null, 2));
     
     // Start a transaction
     await db.run('BEGIN TRANSACTION');
     
-    // Build the SQL update statement for the part
-    const fields = Object.keys(updates);
+    // Build the SQL update statement for the part with validated fields
+    const fields = Object.keys(validUpdates);
     const setClause = fields.map(field => `${field} = ?`).join(', ');
-    const values = fields.map(field => updates[field]);
+    const values = fields.map(field => validUpdates[field]);
     
     console.log('SQL set clause:', setClause);
     console.log('SQL values:', JSON.stringify(values, null, 2));
