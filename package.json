@@ -22,13 +22,16 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.4",
     "express": "^4.18.2",
+    "express-validator": "^7.2.1",
     "fs-extra": "^11.2.0",
+    "sanitize-html": "^2.15.0",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   },
   "devDependencies": {
+    "@types/sanitize-html": "^2.15.0",
     "concurrently": "^8.2.2",
     "nodemon": "^3.1.9"
   }

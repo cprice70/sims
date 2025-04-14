@@ -4,10 +4,49 @@ import sqlite3 from 'sqlite3';
 import { Database, open } from 'sqlite';
 import { dirname, join } from 'path';
 import fs from 'fs/promises';
+import { body, param, validationResult, ValidationChain } from 'express-validator';
+import { sanitizeHtml, sanitizeUrl, validateNumber } from './utils/sanitize';
 
 const app = express();
-app.use(cors());
+
+// Configure CORS with specific allowed origins instead of allowing all origins
+const allowedOrigins = [
+  'http://localhost:5173',   // Frontend dev server
+  'http://localhost:8175',   // Backend dev server
+  'http://homeserver.local:5173',  // Production frontend
+  'http://homeserver.local:8175',  // Production backend
+];
+
+// Custom CORS configuration
+app.use(cors({
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) === -1) {
+      return callback(new Error('The CORS policy for this site does not allow access from the specified origin.'), false);
+    }
+    return callback(null, true);
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  credentials: true
+}));
+
 app.use(express.json());
+
+// Middleware to handle validation errors
+const validate = (validations: ValidationChain[]) => {
+  return async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    await Promise.all(validations.map(validation => validation.run(req)));
+
+    const errors = validationResult(req);
+    if (errors.isEmpty()) {
+      return next();
+    }
+
+    res.status(400).json({ errors: errors.array() });
+  };
+};
 
 // Database paths relative to project root
 const DB_PATH = join(process.cwd(), 'db', 'filaments.db');
@@ -140,7 +179,31 @@ app.get('/api/manufacturers', async (req, res) => {
     }
 });
 
-app.post('/api/filaments', async (req, res) => {
+// Validation rules for filaments
+const filamentValidationRules = [
+    body('name').trim().isLength({ min: 1 }).withMessage('Name is required')
+        .customSanitizer(value => sanitizeHtml(value)),
+    body('material').trim().isLength({ min: 1 }).withMessage('Material is required')
+        .customSanitizer(value => sanitizeHtml(value)),
+    body('color').trim().isLength({ min: 1 }).withMessage('Color is required')
+        .customSanitizer(value => sanitizeHtml(value)),
+    body('color2').optional({ nullable: true }).trim()
+        .customSanitizer(value => sanitizeHtml(value)),
+    body('color3').optional({ nullable: true }).trim()
+        .customSanitizer(value => sanitizeHtml(value)),
+    body('quantity').isInt({ min: 0 }).withMessage('Quantity must be a positive number')
+        .toInt(),
+    body('minimum_quantity').optional({ nullable: true }).isInt({ min: 0 })
+        .withMessage('Minimum quantity must be a positive number').toInt(),
+    body('manufacturer').optional({ nullable: true }).trim()
+        .customSanitizer(value => sanitizeHtml(value)),
+    body('notes').optional({ nullable: true }).trim()
+        .customSanitizer(value => sanitizeHtml(value)),
+    body('cost').optional({ nullable: true }).isFloat({ min: 0 })
+        .withMessage('Cost must be a positive number').toFloat()
+];
+
+app.post('/api/filaments', validate(filamentValidationRules), async (req, res) => {
     try {
         const {
             name,
@@ -171,7 +234,10 @@ app.post('/api/filaments', async (req, res) => {
     }
 });
 
-app.put('/api/filaments/:id', async (req, res) => {
+app.put('/api/filaments/:id', validate([
+    param('id').isInt().withMessage('Invalid filament ID').toInt(),
+    ...filamentValidationRules
+]), async (req, res) => {
     try {
         const { id } = req.params;
         const updates = { ...req.body };
@@ -239,7 +305,13 @@ app.get('/api/printers', async (req, res) => {
     }
 });
 
-app.post('/api/printers', async (req, res) => {
+// Validation rules for printers
+const printerValidationRules = [
+    body('name').trim().isLength({ min: 1 }).withMessage('Name is required')
+        .customSanitizer(value => sanitizeHtml(value))
+];
+
+app.post('/api/printers', validate(printerValidationRules), async (req, res) => {
     try {
         const { name } = req.body;
         const result = await db.run(
@@ -253,7 +325,10 @@ app.post('/api/printers', async (req, res) => {
     }
 });
 
-app.put('/api/printers/:id', async (req, res) => {
+app.put('/api/printers/:id', validate([
+    param('id').isInt().withMessage('Invalid printer ID').toInt(),
+    ...printerValidationRules
+]), async (req, res) => {
     try {
         const { id } = req.params;
         const { name } = req.body;
@@ -306,7 +381,20 @@ app.get('/api/print-queue', async (req, res) => {
     }
 });
 
-app.post('/api/print-queue', async (req, res) => {
+// Validation rules for print queue items
+const printQueueValidationRules = [
+    body('item_name').trim().isLength({ min: 1 }).withMessage('Item name is required')
+        .customSanitizer(value => sanitizeHtml(value)),
+    body('printer_id').optional({ nullable: true }).isInt().withMessage('Printer ID must be a number')
+        .toInt(),
+    body('color').optional({ nullable: true }).trim()
+        .customSanitizer(value => sanitizeHtml(value)),
+    body('status').optional().isIn(['pending', 'printing', 'completed', 'canceled'])
+        .withMessage('Status must be one of: pending, printing, completed, canceled')
+        .default('pending')
+];
+
+app.post('/api/print-queue', validate(printQueueValidationRules), async (req, res) => {
     try {
         const { item_name, printer_id, color, status = 'pending' } = req.body;
         
@@ -341,7 +429,10 @@ app.post('/api/print-queue', async (req, res) => {
     }
 });
 
-app.put('/api/print-queue/:id', async (req, res) => {
+app.put('/api/print-queue/:id', validate([
+    param('id').isInt().withMessage('Invalid queue item ID').toInt(),
+    ...printQueueValidationRules
+]), async (req, res) => {
     try {
         const { id } = req.params;
         const { item_name, printer_id, color, status } = req.body;
@@ -390,7 +481,10 @@ app.delete('/api/print-queue/:id', async (req, res) => {
 });
 
 // New endpoint for reordering print queue items
-app.post('/api/print-queue/reorder', async (req, res) => {
+app.post('/api/print-queue/reorder', validate([
+    body('items').isArray().withMessage('Items must be an array'),
+    body('items.*.id').isInt().withMessage('Item ID must be a number').toInt(),
+]), async (req, res) => {
     try {
         const { items } = req.body;
         
@@ -398,9 +492,18 @@ app.post('/api/print-queue/reorder', async (req, res) => {
             return res.status(400).json({ error: 'Items must be an array' });
         }
         
-        // Update positions in a transaction
+        // Verify that all items exist before reordering
         await db.run('BEGIN TRANSACTION');
         
+        for (const item of items) {
+            const exists = await db.get('SELECT 1 FROM print_queue WHERE id = ?', item.id);
+            if (!exists) {
+                await db.run('ROLLBACK');
+                return res.status(400).json({ error: `Item with ID ${item.id} does not exist` });
+            }
+        }
+        
+        // Update positions in a transaction
         for (let i = 0; i < items.length; i++) {
             const item = items[i];
             await db.run(
@@ -451,9 +554,24 @@ app.get('/api/purchase-list', async (req, res) => {
   }
 })
 
-app.post('/api/purchase-list', async (req, res) => {
+// Validation rules for purchase list items
+const purchaseListValidationRules = [
+  body('filament_id').isInt().withMessage('Filament ID must be a valid number').toInt(),
+  body('quantity').isInt({ min: 1 }).withMessage('Quantity must be a positive number').toInt(),
+  body('notes').optional({ nullable: true }).trim()
+    .customSanitizer(value => sanitizeHtml(value)),
+  body('purchased').optional().isBoolean().withMessage('Purchased must be a boolean value')
+];
+
+app.post('/api/purchase-list', validate(purchaseListValidationRules), async (req, res) => {
   const { filament_id, quantity } = req.body
   try {
+    // Verify filament exists
+    const filamentExists = await db.get('SELECT 1 FROM filaments WHERE id = ?', filament_id);
+    if (!filamentExists) {
+      return res.status(400).json({ error: 'Filament not found' });
+    }
+    
     const result = await db.run(
       'INSERT INTO purchase_list (filament_id, quantity) VALUES (?, ?)',
       [filament_id, quantity]
@@ -471,7 +589,10 @@ app.post('/api/purchase-list', async (req, res) => {
   }
 })
 
-app.put('/api/purchase-list/:id', async (req, res) => {
+app.put('/api/purchase-list/:id', validate([
+    param('id').isInt().withMessage('Invalid purchase list item ID').toInt(),
+    ...purchaseListValidationRules
+]), async (req, res) => {
     try {
         const { id } = req.params;
         const updates = { ...req.body };
@@ -503,6 +624,14 @@ app.put('/api/purchase-list/:id', async (req, res) => {
             
         if (Object.keys(validUpdates).length === 0) {
             return res.status(400).json({ error: 'No valid fields to update' });
+        }
+
+        // If updating filament_id, verify the filament exists
+        if (validUpdates.filament_id) {
+            const filamentExists = await db.get('SELECT 1 FROM filaments WHERE id = ?', validUpdates.filament_id);
+            if (!filamentExists) {
+                return res.status(400).json({ error: 'Filament not found' });
+            }
         }
 
         // Create parameterized query with only valid fields
@@ -610,7 +739,31 @@ app.get('/api/parts/:id', async (req, res) => {
   }
 });
 
-app.post('/api/parts', async (req, res) => {
+// Validation rules for parts
+const partValidationRules = [
+  body('name').trim().isLength({ min: 1 }).withMessage('Name is required')
+    .customSanitizer(value => sanitizeHtml(value)),
+  body('description').optional({ nullable: true }).trim()
+    .customSanitizer(value => sanitizeHtml(value)),
+  body('quantity').isInt({ min: 0 }).withMessage('Quantity must be a positive number')
+    .toInt(),
+  body('minimum_quantity').optional({ nullable: true }).isInt({ min: 0 })
+    .withMessage('Minimum quantity must be a positive number').toInt(),
+  body('printer_ids').optional().isArray().withMessage('Printer IDs must be an array'),
+  body('printer_ids.*').isInt().withMessage('Printer ID must be a number').toInt(),
+  body('supplier').optional({ nullable: true }).trim()
+    .customSanitizer(value => sanitizeHtml(value)),
+  body('part_number').optional({ nullable: true }).trim()
+    .customSanitizer(value => sanitizeHtml(value)),
+  body('price').optional({ nullable: true }).isFloat({ min: 0 })
+    .withMessage('Price must be a positive number').toFloat(),
+  body('link').optional({ nullable: true }).trim()
+    .customSanitizer(value => sanitizeUrl(value)),
+  body('notes').optional({ nullable: true }).trim()
+    .customSanitizer(value => sanitizeHtml(value))
+];
+
+app.post('/api/parts', validate(partValidationRules), async (req, res) => {
   try {
     const {
       name,
@@ -684,7 +837,10 @@ app.post('/api/parts', async (req, res) => {
   }
 });
 
-app.put('/api/parts/:id', async (req, res) => {
+app.put('/api/parts/:id', validate([
+  param('id').isInt().withMessage('Invalid part ID').toInt(),
+  ...partValidationRules
+]), async (req, res) => {
   try {
     const { id } = req.params;
     console.log('PUT /api/parts/:id - Request body:', JSON.stringify(req.body, null, 2));
@@ -874,7 +1030,27 @@ app.get('/api/products/:id', async (req, res) => {
   }
 });
 
-app.post('/api/products', async (req, res) => {
+// Validation rules for products
+const productValidationRules = [
+  body('name').trim().isLength({ min: 1 }).withMessage('Name is required')
+    .customSanitizer(value => sanitizeHtml(value)),
+  body('business').optional({ nullable: true }).trim()
+    .customSanitizer(value => sanitizeHtml(value)),
+  body('filament_used').optional({ nullable: true }).isFloat({ min: 0 })
+    .withMessage('Filament used must be a positive number').toFloat(),
+  body('print_prep_time').optional({ nullable: true }).isFloat({ min: 0 })
+    .withMessage('Print prep time must be a positive number').toFloat(),
+  body('post_processing_time').optional({ nullable: true }).isFloat({ min: 0 })
+    .withMessage('Post processing time must be a positive number').toFloat(), 
+  body('additional_parts_cost').optional({ nullable: true }).isFloat({ min: 0 })
+    .withMessage('Additional parts cost must be a positive number').toFloat(),
+  body('list_price').optional({ nullable: true }).isFloat({ min: 0 })
+    .withMessage('List price must be a positive number').toFloat(),
+  body('notes').optional({ nullable: true }).trim()
+    .customSanitizer(value => sanitizeHtml(value))
+];
+
+app.post('/api/products', validate(productValidationRules), async (req, res) => {
   try {
     const {
       name,
@@ -918,7 +1094,10 @@ app.post('/api/products', async (req, res) => {
   }
 });
 
-app.put('/api/products/:id', async (req, res) => {
+app.put('/api/products/:id', validate([
+  param('id').isInt().withMessage('Invalid product ID').toInt(),
+  ...productValidationRules
+]), async (req, res) => {
   try {
     const {
       name,
@@ -999,7 +1178,17 @@ app.get('/api/products/:id/filaments', async (req, res) => {
   }
 });
 
-app.post('/api/products/:id/filaments', async (req, res) => {
+// Validation rules for product-filament relationship
+const productFilamentValidationRules = [
+  body('filament_id').isInt().withMessage('Filament ID must be a valid number').toInt(),
+  body('filament_usage_amount').optional({ nullable: true }).isFloat({ min: 0 })
+    .withMessage('Filament usage amount must be a positive number').toFloat()
+];
+
+app.post('/api/products/:id/filaments', validate([
+  param('id').isInt().withMessage('Invalid product ID').toInt(),
+  ...productFilamentValidationRules
+]), async (req, res) => {
   try {
     const { filament_id } = req.body;
     
@@ -1042,7 +1231,12 @@ app.post('/api/products/:id/filaments', async (req, res) => {
   }
 });
 
-app.patch('/api/products/:productId/filaments/:filamentId', async (req, res) => {
+app.patch('/api/products/:productId/filaments/:filamentId', validate([
+  param('productId').isInt().withMessage('Invalid product ID').toInt(),
+  param('filamentId').isInt().withMessage('Invalid filament ID').toInt(),
+  body('filament_usage_amount').isFloat({ min: 0 })
+    .withMessage('Filament usage amount must be a positive number').toFloat()
+]), async (req, res) => {
   try {
     const { productId, filamentId } = req.params;
     const { filament_usage_amount } = req.body;
@@ -1116,7 +1310,20 @@ app.get('/api/settings', async (req, res) => {
   }
 });
 
-app.put('/api/settings', async (req, res) => {
+// Validation for settings
+const validateSettings = validate([
+  body().isObject().withMessage('Settings must be an object'),
+  body('*.').custom((value) => {
+    // Ensure all values are either numbers or can be converted to numbers
+    const num = parseFloat(value);
+    if (isNaN(num)) {
+      throw new Error('All settings values must be numbers');
+    }
+    return true;
+  })
+]);
+
+app.put('/api/settings', validateSettings, async (req, res) => {
   try {
     const settings = req.body;
     
@@ -1127,9 +1334,12 @@ app.put('/api/settings', async (req, res) => {
     
     // Update each setting
     for (const [key, value] of Object.entries(settings)) {
+      // Ensure sanitized numeric value
+      const sanitizedValue = validateNumber(value, 0).toString();
+      
       await db.run(
         'UPDATE settings SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE key = ?',
-        value, key
+        sanitizedValue, key
       );
     }
     
