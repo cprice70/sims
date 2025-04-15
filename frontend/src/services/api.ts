@@ -303,12 +303,14 @@ export const fetchSettings = async (): Promise<Settings> => {
 };
 
 export const updateSettings = async (settings: Settings): Promise<Settings> => {
-    // Convert numbers to strings for API, preserving zero values
+    // Convert numbers back to strings for API, preserving zero values, as backend expects strings
     const stringSettings = Object.entries(settings).reduce((acc, [key, value]) => {
         if (value === undefined) {
+            // Ensure undefined values are not included, or backend might complain
             return acc;
         }
-        acc[key] = value === 0 ? '0' : value.toString();
+        // Convert numbers to strings, handle null/undefined just in case although Settings type shouldn't allow it
+        acc[key] = (value === 0 ? '0' : value?.toString()) ?? ''; 
         return acc;
     }, {} as Record<string, string>);
 
@@ -317,10 +319,21 @@ export const updateSettings = async (settings: Settings): Promise<Settings> => {
         headers: {
             'Content-Type': 'application/json'
         },
+        // Send the stringified settings object
         body: JSON.stringify(stringSettings)
     });
 
-    if (!response.ok) throw new Error('Failed to update settings');
+    if (!response.ok) {
+        // Try to get more error info from the response body
+        let errorBody = 'Failed to update settings';
+        try {
+            const errorData = await response.json();
+            errorBody = errorData.message || errorData.error || JSON.stringify(errorData);
+        } catch (e) {
+            // Ignore if response body is not JSON or empty
+        }
+        throw new Error(errorBody); // Throw more specific error if possible
+    }
 
     const data = await response.json();
 

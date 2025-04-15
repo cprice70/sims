@@ -1,25 +1,20 @@
 import { useState, useEffect } from 'react';
 
+import { Settings as SettingsType } from '../services/api';
+
 interface SettingsProps {
-  settings: {
-    spool_weight: number;
-    filament_markup: number;
-    hourly_rate: number;
-    wear_tear_markup: number;
-    platform_fees: number;
-    filament_spool_price: number;
-    desired_profit_margin: number;
-    packaging_cost: number;
-    wear_tear_percentage?: number;
-    platform_fee_percentage?: number;
-    default_markup?: number;
-    global_spool_price?: number;
-    company_name_1?: string;
-    company_name_2?: string;
-    [key: string]: number | string | undefined;
-  };
-  onUpdateSettings: (newSettings: any) => void;
+  settings: SettingsType;
+  onUpdateSettings: (newSettings: SettingsType) => Promise<SettingsType>;
 }
+
+// Utility function to decode HTML entities
+const decodeHtmlEntities = (text: string | undefined): string => {
+  if (!text) return '';
+  // Create a temporary textarea element to leverage the browser's decoding
+  const textarea = document.createElement('textarea');
+  textarea.innerHTML = text;
+  return textarea.value;
+};
 
 const Settings = ({ settings, onUpdateSettings }: SettingsProps) => {
   const [formSettings, setFormSettings] = useState(settings);
@@ -54,7 +49,24 @@ const Settings = ({ settings, onUpdateSettings }: SettingsProps) => {
     setSaveStatus('saving');
     
     try {
-      await onUpdateSettings(formSettings);
+      // Prepare settings object
+      const updatedSettings: SettingsType = {
+        ...formSettings,
+        // Ensure company names are strings and trim whitespace
+        company_name_1: (formSettings.company_name_1?.toString() || '').trim(),
+        company_name_2: (formSettings.company_name_2?.toString() || '').trim(),
+        // Ensure numeric fields are numbers
+        spool_weight: Number(formSettings.spool_weight),
+        filament_markup: Number(formSettings.filament_markup),
+        hourly_rate: Number(formSettings.hourly_rate),
+        wear_tear_markup: Number(formSettings.wear_tear_markup),
+        platform_fees: Number(formSettings.platform_fees),
+        filament_spool_price: Number(formSettings.filament_spool_price),
+        desired_profit_margin: Number(formSettings.desired_profit_margin),
+        packaging_cost: Number(formSettings.packaging_cost)
+      };
+
+      await onUpdateSettings(updatedSettings);
       setSaveStatus('success');
       setIsEditing(false);
       
@@ -63,6 +75,7 @@ const Settings = ({ settings, onUpdateSettings }: SettingsProps) => {
         setSaveStatus('idle');
       }, 3000);
     } catch (error) {
+      console.error('Error updating settings:', error);
       setSaveStatus('error');
     }
   };
@@ -105,7 +118,7 @@ const Settings = ({ settings, onUpdateSettings }: SettingsProps) => {
               </label>
               <input
                 type="text"
-                value={formSettings.company_name_1 || ''}
+                value={decodeHtmlEntities(formSettings.company_name_1)}
                 onChange={(e) => handleChange('company_name_1', e.target.value)}
                 disabled={!isEditing}
                 className="w-full p-2 border border-black bg-white text-black disabled:bg-gray-100"
@@ -121,7 +134,7 @@ const Settings = ({ settings, onUpdateSettings }: SettingsProps) => {
               </label>
               <input
                 type="text"
-                value={formSettings.company_name_2 || ''}
+                value={decodeHtmlEntities(formSettings.company_name_2)}
                 onChange={(e) => handleChange('company_name_2', e.target.value)}
                 disabled={!isEditing}
                 className="w-full p-2 border border-black bg-white text-black disabled:bg-gray-100"

@@ -1311,32 +1311,98 @@ app.get('/api/settings', async (req, res) => {
   }
 });
 
-// Validation for settings
-const validateSettings = validate([
-  body().isObject().withMessage('Settings must be an object'),
-  body('*.').custom((value) => {
-    // Ensure all values are either numbers or can be converted to numbers
-    const num = parseFloat(value);
-    if (isNaN(num)) {
-      throw new Error('All settings values must be numbers');
-    }
-    return true;
-  })
+// Define specific setting keys and their types
+const settingKeys = {
+  // Numeric (expect string representation of a number)
+  spool_weight: 'numeric',
+  filament_markup: 'numeric',
+  hourly_rate: 'numeric',
+  wear_tear_markup: 'numeric',
+  platform_fees: 'numeric',
+  filament_spool_price: 'numeric',
+  desired_profit_margin: 'numeric',
+  packaging_cost: 'numeric',
+  // Keys from error message (assuming numeric)
+  // Note: If any of these should actually be strings, adjust their type here.
+  desired_markup: 'numeric',
+  wear_tear_percentage: 'numeric',
+  global_spool_price: 'numeric',
+  platform_fee_percentage: 'numeric',
+  default_markup: 'numeric',
+  // String
+  company_name_1: 'string',
+  company_name_2: 'string',
+};
+
+// Build validation rules dynamically
+const settingValidationRules = Object.entries(settingKeys).map(([key, type]) => {
+  // Make checks optional as not all settings might be sent every time
+  // The PUT request updates existing settings, it doesn't require all settings
+  let validator = body(key)
+    .optional() // Settings are optional in the PUT request
+    .isString().withMessage(`${key} must be provided as a string`);
+
+  if (type === 'numeric') {
+    validator = validator
+      .trim()
+      .custom((value) => {
+        // Allow "0" as a valid numeric string, or any parsable number
+        const num = parseFloat(value);
+        if (isNaN(num)) {
+           throw new Error(`${key} must be a valid number string`);
+        }
+        // You could add range checks here like: if (num < 0) throw new Error(...) 
+        return true;
+      });
+  } else { // type === 'string'
+    // Temporarily remove trim() and sanitizeHtml() to test space issue
+    // validator = validator
+    //   .trim()
+    //   // Allow empty strings for company names if desired, otherwise use .notEmpty()
+    //   // .notEmpty().withMessage(`${key} cannot be empty`) 
+    //   .customSanitizer(value => sanitizeHtml(value)); 
+    // Keep only the basic isString check for now
+    validator = validator;
+  }
+  return validator;
+});
+
+// Combine with the initial object check
+const newValidateSettings = validate([
+  body().isObject().withMessage('Settings body must be an object containing key-value pairs'),
+  ...settingValidationRules // Spread the dynamically generated rules
 ]);
 
-app.put('/api/settings', validateSettings, async (req, res) => {
+// Apply the new validation middleware
+app.put('/api/settings', newValidateSettings, async (req, res) => {
   try {
     const settings = req.body;
-    
-    // Validate settings
-    if (!settings || typeof settings !== 'object') {
-      return res.status(400).json({ error: 'Invalid settings data' });
-    }
+
+    // The validation middleware already checked the format
+    // // Validate settings
+    // if (!settings || typeof settings !== 'object') {
+    //   return res.status(400).json({ error: 'Invalid settings data' });
+    // }
     
     // Update each setting
-    for (const [key, value] of Object.entries(settings)) {
-      // Ensure sanitized numeric value
-      const sanitizedValue = validateNumber(value, 0).toString();
+    for (const [key, value] of Object.entries<string | number>(settings)) {
+      // Skip undefined values
+      if (value === undefined) continue;
+
+      // Sanitize value based on setting type
+      let sanitizedValue: string;
+      if (key.startsWith('company_name_')) {
+        if (typeof value !== 'string') {
+          throw new Error(`Company name must be a string: ${key}`);
+        }
+        sanitizedValue = sanitizeHtml(value);
+      } else {
+        const numValue = typeof value === 'number' ? value : parseFloat(String(value));
+        if (isNaN(numValue)) {
+          throw new Error(`Invalid numeric value for setting: ${key}`);
+        }
+        sanitizedValue = numValue.toString();
+      }
       
       await db.run(
         'UPDATE settings SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE key = ?',

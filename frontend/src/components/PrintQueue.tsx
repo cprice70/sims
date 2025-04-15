@@ -99,30 +99,30 @@ const QueueItem = ({ item, printers, index, onUpdate, onDelete, moveItem }: Queu
     return (
         <div 
             ref={ref} 
-            className={`p-4 ${isDragging ? 'opacity-50 bg-gray-100' : ''}`}
+            className={`p-2 ${isDragging ? 'opacity-50 bg-gray-100' : ''}`}
             style={{ cursor: 'move' }}
         >
             <div className="flex justify-between items-start">
-                <div>
+                <div className="overflow-hidden truncate">
                     <div className="font-medium">{item.item_name}</div>
                 </div>
                 <div className="flex space-x-2">
                     <select
                         value={item.printer_id || ''}
                         onChange={(e) => onUpdate({ ...item, printer_id: e.target.value ? Number(e.target.value) : undefined })}
-                        className="text-xs border border-black px-2 py-1 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23000000%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:6px_6px] bg-[right_8px_center] bg-no-repeat pr-6"
+                        className="text-xs border border-black px-1 py-1 w-28 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23000000%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:6px_6px] bg-[right_4px_center] bg-no-repeat pr-4 overflow-hidden"
                     >
                         <option value="">No Printer</option>
                         {printers.map((printer) => (
-                            <option key={printer.id} value={printer.id}>
-                                {printer.name}
+                            <option key={printer.id} value={printer.id} className="truncate">
+                                {printer.name.length > 15 ? printer.name.substring(0, 15) + '...' : printer.name}
                             </option>
                         ))}
                     </select>
                     <select
                         value={item.status}
                         onChange={(e) => onUpdate({ ...item, status: e.target.value as PrintQueueItem['status'] })}
-                        className="text-xs border border-black px-2 py-1 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23000000%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:6px_6px] bg-[right_8px_center] bg-no-repeat pr-6"
+                        className="text-xs border border-black px-1 py-1 w-20 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23000000%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:6px_6px] bg-[right_4px_center] bg-no-repeat pr-4 overflow-hidden"
                     >
                         <option value="pending">Pending</option>
                         <option value="in_progress">In Progress</option>
@@ -130,7 +130,7 @@ const QueueItem = ({ item, printers, index, onUpdate, onDelete, moveItem }: Queu
                     </select>
                     <button
                         onClick={() => item.id && onDelete(item.id)}
-                        className="px-2 border border-black text-white bg-red-600 hover:bg-red-700"
+                        className="w-6 h-6 flex items-center justify-center border border-black text-white bg-red-600 hover:bg-red-700 flex-shrink-0"
                     >
                         ×
                     </button>
@@ -190,7 +190,7 @@ export default function PrintQueue({ items, printers, onAdd, onUpdate, onDelete,
                     <h2 className="text-lg font-medium tracking-wider">PRINT QUEUE</h2>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-4 border-b-2 border-black">
+                <form onSubmit={handleSubmit} className="p-4 pr-16 border-b-2 border-black">
                     <div className="space-y-3">
                         <div className="flex space-x-2">
                             <input
@@ -203,7 +203,7 @@ export default function PrintQueue({ items, printers, onAdd, onUpdate, onDelete,
                             <select
                                 value={selectedPrinter || ''}
                                 onChange={(e) => setSelectedPrinter(e.target.value ? Number(e.target.value) : undefined)}
-                                className="w-48 px-3 py-2 border-2 border-black text-sm appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23000000%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:8px_8px] bg-[right_12px_center] bg-no-repeat"
+                                className="w-36 px-3 py-2 border-2 border-black text-sm appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23000000%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:8px_8px] bg-[right_8px_center] bg-no-repeat pr-8"
                             >
                                 <option value="">Printer (Optional)</option>
                                 {printers.map((printer) => (
