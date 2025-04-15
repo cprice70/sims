@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 
 import { Settings as SettingsType } from '../services/api';
+import CompanySettingsSection from './CompanySettingsSection';
+import GeneralSettingsSection from './GeneralSettingsSection';
+import CostSettingsSection from './CostSettingsSection';
+import MarkupFeesSection from './MarkupFeesSection';
 
 interface SettingsProps {
   settings: SettingsType;
@@ -107,263 +111,41 @@ const Settings = ({ settings, onUpdateSettings }: SettingsProps) => {
       )}
       
       <form onSubmit={handleSubmit} className="space-y-6 pb-6">
-        <div className="border-2 border-black">
-          <div className="bg-black text-white p-2 text-xs font-medium uppercase tracking-wider">
-            Company Settings
-          </div>
-          <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-            <div>
-              <label className="block text-sm font-medium text-black mb-1">
-                Company Name 1
-              </label>
-              <input
-                type="text"
-                value={decodeHtmlEntities(formSettings.company_name_1)}
-                onChange={(e) => handleChange('company_name_1', e.target.value)}
-                disabled={!isEditing}
-                className="w-full p-2 border border-black bg-white text-black disabled:bg-gray-100"
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                Default: "Super Fantastic"
-              </p>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-black mb-1">
-                Company Name 2
-              </label>
-              <input
-                type="text"
-                value={decodeHtmlEntities(formSettings.company_name_2)}
-                onChange={(e) => handleChange('company_name_2', e.target.value)}
-                disabled={!isEditing}
-                className="w-full p-2 border border-black bg-white text-black disabled:bg-gray-100"
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                Default: "Cedar & Sail"
-              </p>
-            </div>
-          </div>
-        </div>
+        <CompanySettingsSection
+  companyName1={formSettings.company_name_1 ?? ''}
+  companyName2={formSettings.company_name_2 ?? ''}
+  isEditing={isEditing}
+  decodeHtmlEntities={decodeHtmlEntities}
+  onChange={handleChange}
+/>
         
-        <div className="border-2 border-black">
-          <div className="bg-black text-white p-2 text-xs font-medium uppercase tracking-wider">
-            General Settings
-          </div>
-          <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-            <div>
-              <label className="block text-sm font-medium text-black mb-1">
-                Spool Weight (g)
-              </label>
-              <input
-                type="number"
-                step="1"
-                min="0"
-                value={formSettings.spool_weight}
-                onChange={(e) => handleChange('spool_weight', e.target.value)}
-                disabled={!isEditing}
-                className="w-full p-2 border border-black bg-white text-black disabled:bg-gray-100"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-black mb-1">
-                Hourly Rate ($)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={formSettings.hourly_rate}
-                onChange={(e) => handleChange('hourly_rate', e.target.value)}
-                disabled={!isEditing}
-                className="w-full p-2 border border-black bg-white text-black disabled:bg-gray-100"
-              />
-            </div>
-          </div>
-        </div>
+        <GeneralSettingsSection
+  spoolWeight={typeof formSettings.spool_weight === 'number' ? formSettings.spool_weight : Number(formSettings.spool_weight) || 0}
+  hourlyRate={typeof formSettings.hourly_rate === 'number' ? formSettings.hourly_rate : Number(formSettings.hourly_rate) || 0}
+  isEditing={isEditing}
+  onChange={handleChange}
+/>
         
-        <div className="border-2 border-black">
-          <div className="bg-black text-white p-2 text-xs font-medium uppercase tracking-wider">
-            Cost Settings
-          </div>
-          <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-            <div>
-              <label className="block text-sm font-medium text-black mb-1">
-                Filament Spool Price ($)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={formSettings.filament_spool_price}
-                onChange={(e) => handleChange('filament_spool_price', e.target.value)}
-                disabled={!isEditing}
-                className="w-full p-2 border border-black bg-white text-black disabled:bg-gray-100"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-black mb-1">
-                Global Spool Price ($)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={formSettings.global_spool_price ?? formSettings.filament_spool_price}
-                onChange={(e) => handleChange('global_spool_price', e.target.value)}
-                disabled={!isEditing}
-                className="w-full p-2 border border-black bg-white text-black disabled:bg-gray-100"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-black mb-1">
-                Packaging Cost ($)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={formSettings.packaging_cost}
-                onChange={(e) => handleChange('packaging_cost', e.target.value)}
-                disabled={!isEditing}
-                className="w-full p-2 border border-black bg-white text-black disabled:bg-gray-100"
-              />
-            </div>
-          </div>
-        </div>
+        <CostSettingsSection
+  filamentSpoolPrice={typeof formSettings.filament_spool_price === 'number' ? formSettings.filament_spool_price : Number(formSettings.filament_spool_price) || 0}
+  globalSpoolPrice={typeof formSettings.global_spool_price === 'number' ? formSettings.global_spool_price : (formSettings.global_spool_price !== undefined ? Number(formSettings.global_spool_price) : undefined)}
+  packagingCost={typeof formSettings.packaging_cost === 'number' ? formSettings.packaging_cost : Number(formSettings.packaging_cost) || 0}
+  isEditing={isEditing}
+  onChange={handleChange}
+/>
         
-        <div className="border-2 border-black">
-          <div className="bg-black text-white p-2 text-xs font-medium uppercase tracking-wider">
-            Markup & Fees
-          </div>
-          <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-            <div>
-              <label className="block text-sm font-medium text-black mb-1">
-                Filament Markup (%)
-              </label>
-              <input
-                type="number"
-                step="1"
-                min="0"
-                value={formSettings.filament_markup}
-                onChange={(e) => handleChange('filament_markup', e.target.value)}
-                disabled={!isEditing}
-                className="w-full p-2 border border-black bg-white text-black disabled:bg-gray-100"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-black mb-1">
-                Wear & Tear Markup (%)
-              </label>
-              <input
-                type="number"
-                step="1"
-                min="0"
-                value={formSettings.wear_tear_markup}
-                onChange={(e) => handleChange('wear_tear_markup', e.target.value)}
-                disabled={!isEditing}
-                className="w-full p-2 border border-black bg-white text-black disabled:bg-gray-100"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-black mb-1">
-                Wear & Tear Percentage (0-1)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                max="1"
-                value={formSettings.wear_tear_percentage ?? (formSettings.wear_tear_markup / 100)}
-                onChange={(e) => handleChange('wear_tear_percentage', e.target.value)}
-                disabled={!isEditing}
-                className="w-full p-2 border border-black bg-white text-black disabled:bg-gray-100"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-black mb-1">
-                Desired Markup (%)
-              </label>
-              <input
-                type="number"
-                step="1"
-                min="0"
-                value={formSettings.desired_markup ?? (typeof formSettings.desired_profit_margin === 'number' ? formSettings.desired_profit_margin * 2 : 0)}
-                onChange={(e) => handleChange('desired_markup', e.target.value)}
-                disabled={!isEditing}
-                className="w-full p-2 border border-black bg-white text-black disabled:bg-gray-100"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-black mb-1">
-                Default Markup (0-1)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                max="1"
-                value={formSettings.default_markup ?? (typeof formSettings.desired_markup === 'number' ? formSettings.desired_markup / 100 : 0)}
-                onChange={(e) => handleChange('default_markup', e.target.value)}
-                disabled={!isEditing}
-                className="w-full p-2 border border-black bg-white text-black disabled:bg-gray-100"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-black mb-1">
-                Desired Profit Margin (%)
-              </label>
-              <input
-                type="number"
-                step="1"
-                min="0"
-                value={formSettings.desired_profit_margin}
-                onChange={(e) => handleChange('desired_profit_margin', e.target.value)}
-                disabled={!isEditing}
-                className="w-full p-2 border border-black bg-white text-black disabled:bg-gray-100"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-black mb-1">
-                Platform Fees (%)
-              </label>
-              <input
-                type="number"
-                step="1"
-                min="0"
-                value={formSettings.platform_fees}
-                onChange={(e) => handleChange('platform_fees', e.target.value)}
-                disabled={!isEditing}
-                className="w-full p-2 border border-black bg-white text-black disabled:bg-gray-100"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-black mb-1">
-                Platform Fee Percentage (0-1)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                max="1"
-                value={formSettings.platform_fee_percentage ?? (formSettings.platform_fees / 100)}
-                onChange={(e) => handleChange('platform_fee_percentage', e.target.value)}
-                disabled={!isEditing}
-                className="w-full p-2 border border-black bg-white text-black disabled:bg-gray-100"
-              />
-            </div>
-          </div>
-        </div>
+        <MarkupFeesSection
+          filamentMarkup={typeof formSettings.filament_markup === 'number' ? formSettings.filament_markup : Number(formSettings.filament_markup) || 0}
+          wearTearMarkup={typeof formSettings.wear_tear_markup === 'number' ? formSettings.wear_tear_markup : Number(formSettings.wear_tear_markup) || 0}
+          wearTearPercentage={typeof formSettings.wear_tear_percentage === 'number' ? formSettings.wear_tear_percentage : (formSettings.wear_tear_percentage !== undefined ? Number(formSettings.wear_tear_percentage) : (typeof formSettings.wear_tear_markup === 'number' ? formSettings.wear_tear_markup / 100 : 0))}
+          desiredMarkup={typeof formSettings.desired_markup === 'number' ? formSettings.desired_markup : Number(formSettings.desired_markup) || 0}
+          defaultMarkup={typeof formSettings.default_markup === 'number' ? formSettings.default_markup : Number(formSettings.default_markup) || 0}
+          desiredProfitMargin={typeof formSettings.desired_profit_margin === 'number' ? formSettings.desired_profit_margin : Number(formSettings.desired_profit_margin) || 0}
+          platformFees={typeof formSettings.platform_fees === 'number' ? formSettings.platform_fees : Number(formSettings.platform_fees) || 0}
+          platformFeePercentage={typeof formSettings.platform_fee_percentage === 'number' ? formSettings.platform_fee_percentage : (formSettings.platform_fee_percentage !== undefined ? Number(formSettings.platform_fee_percentage) : (typeof formSettings.platform_fees === 'number' ? formSettings.platform_fees / 100 : 0))}
+          isEditing={isEditing}
+          onChange={handleChange}
+        />
         
         {isEditing && (
           <div className="flex justify-end space-x-4">
