@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { Filament } from '../types/filament';
 import { fetchFilaments, addFilament, updateFilament, deleteFilament } from '../services/api';
 
@@ -64,7 +64,7 @@ export const FilamentsProvider: React.FC<FilamentsProviderProps> = ({ children }
   }, [refreshFilaments]);
 
   // Function to add a filament with optimistic update
-  const handleAddFilament = async (filament: Filament): Promise<Filament> => {
+  const handleAddFilament = useCallback(async (filament: Filament): Promise<Filament> => {
     setIsUpdating(true);
     setError(null);
     
@@ -100,10 +100,10 @@ export const FilamentsProvider: React.FC<FilamentsProviderProps> = ({ children }
     } finally {
       setIsUpdating(false);
     }
-  };
+  }, []);
 
   // Function to update a filament with optimistic update
-  const handleUpdateFilament = async (filament: Filament): Promise<Filament> => {
+  const handleUpdateFilament = useCallback(async (filament: Filament): Promise<Filament> => {
     if (!filament.id) {
       throw new Error('Filament ID is required for update');
     }
@@ -149,10 +149,10 @@ export const FilamentsProvider: React.FC<FilamentsProviderProps> = ({ children }
         return Object.keys(updated).length > 0 ? updated : null;
       });
     }
-  };
+  }, []);
 
   // Function to delete a filament with optimistic update
-  const handleDeleteFilament = async (id: number): Promise<void> => {
+  const handleDeleteFilament = useCallback(async (id: number): Promise<void> => {
     setIsUpdating(true);
     setError(null);
     
@@ -189,10 +189,10 @@ export const FilamentsProvider: React.FC<FilamentsProviderProps> = ({ children }
         return Object.keys(updated).length > 0 ? updated : null;
       });
     }
-  };
+  }, []);
 
   // Value provided to consumers of the context
-  const value: FilamentsContextType = {
+  const value = useMemo<FilamentsContextType>(() => ({
     filaments,
     isLoading,
     error,
@@ -202,7 +202,7 @@ export const FilamentsProvider: React.FC<FilamentsProviderProps> = ({ children }
     addFilament: handleAddFilament,
     updateFilament: handleUpdateFilament,
     deleteFilament: handleDeleteFilament
-  };
+  }), [filaments, isLoading, error, isUpdating, pendingChanges, refreshFilaments, handleAddFilament, handleUpdateFilament, handleDeleteFilament]);
 
   return (
     <FilamentsContext.Provider value={value}>

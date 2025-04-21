@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { Settings, fetchSettings, updateSettings } from '../services/api';
 
 // Default settings (fallback values)
@@ -49,7 +49,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     }, []);
 
     // Function to refresh settings from the API
-    const refreshSettings = async (): Promise<void> => {
+    const refreshSettings = useCallback(async (): Promise<void> => {
         setIsLoading(true);
         setError(null);
 
@@ -62,10 +62,10 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
         } finally {
             setIsLoading(false);
         }
-    };
+    }, []);
 
     // Function to update settings
-    const handleUpdateSettings = async (newSettings: Settings): Promise<Settings> => {
+    const handleUpdateSettings = useCallback(async (newSettings: Settings): Promise<Settings> => {
         setIsLoading(true);
         setError(null);
 
@@ -80,22 +80,22 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
         } finally {
             setIsLoading(false);
         }
-    };
+    }, []);
 
     // Value provided to consumers of the context
-    const value: SettingsContextType = {
+    const value = React.useMemo<SettingsContextType>(() => ({
         settings,
         isLoading,
         error,
         updateSettings: handleUpdateSettings,
         refreshSettings
-    };
+    }), [settings, isLoading, error, handleUpdateSettings, refreshSettings]);
 
     return (
-        <SettingsContext.Provider value= { value } >
-        { children }
+        <SettingsContext.Provider value={value}>
+            {children}
         </SettingsContext.Provider>
-  );
+    );
 };
 
 export default SettingsContext;

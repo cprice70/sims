@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { Part } from '../types/part';
 import { API_URL } from '../config';
 
@@ -65,7 +65,7 @@ export const PartsProvider: React.FC<PartsProviderProps> = ({ children }) => {
   }, [refreshParts]);
 
   // Function to add a part
-  const handleAddPart = async (part: Part): Promise<Part> => {
+  const handleAddPart = useCallback(async (part: Part): Promise<Part> => {
     setIsLoading(true);
     setError(null);
     
@@ -90,10 +90,10 @@ export const PartsProvider: React.FC<PartsProviderProps> = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   // Function to update a part
-  const handleUpdatePart = async (part: Part): Promise<Part> => {
+  const handleUpdatePart = useCallback(async (part: Part): Promise<Part> => {
     setIsLoading(true);
     setError(null);
     
@@ -118,10 +118,10 @@ export const PartsProvider: React.FC<PartsProviderProps> = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   // Function to delete a part
-  const handleDeletePart = async (id: number): Promise<void> => {
+  const handleDeletePart = useCallback(async (id: number): Promise<void> => {
     setIsLoading(true);
     setError(null);
     
@@ -140,10 +140,10 @@ export const PartsProvider: React.FC<PartsProviderProps> = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   // Value provided to consumers of the context
-  const value: PartsContextType = {
+  const value = useMemo<PartsContextType>(() => ({
     parts,
     isLoading,
     error,
@@ -151,7 +151,7 @@ export const PartsProvider: React.FC<PartsProviderProps> = ({ children }) => {
     addPart: handleAddPart,
     updatePart: handleUpdatePart,
     deletePart: handleDeletePart
-  };
+  }), [parts, isLoading, error, refreshParts, handleAddPart, handleUpdatePart, handleDeletePart]);
 
   return (
     <PartsContext.Provider value={value}>

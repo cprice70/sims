@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { Product, ProductWithCalculations } from '../types/product';
 import { fetchProducts, addProduct, updateProduct, deleteProduct } from '../services/api';
 import { useSettings } from './SettingsContext';
@@ -74,7 +74,7 @@ export const ProductsProvider: React.FC<ProductsProviderProps> = ({ children }) 
   }, [refreshProducts]);
 
   // Function to add a product with optimistic update
-  const handleAddProduct = async (product: Product): Promise<Product> => {
+  const handleAddProduct = useCallback(async (product: Product): Promise<Product> => {
     setIsUpdating(true);
     setError(null);
     
@@ -110,7 +110,7 @@ export const ProductsProvider: React.FC<ProductsProviderProps> = ({ children }) 
     } finally {
       setIsUpdating(false);
     }
-  };
+  }, []);
 
   // Function to update a product with optimistic update
   const handleUpdateProduct = async (product: Product): Promise<Product> => {
@@ -213,7 +213,7 @@ export const ProductsProvider: React.FC<ProductsProviderProps> = ({ children }) 
   };
 
   // Value provided to consumers of the context
-  const value: ProductsContextType = {
+  const value = useMemo<ProductsContextType>(() => ({
     products,
     rawProducts,
     isLoading,
@@ -224,7 +224,7 @@ export const ProductsProvider: React.FC<ProductsProviderProps> = ({ children }) 
     addProduct: handleAddProduct,
     updateProduct: handleUpdateProduct,
     deleteProduct: handleDeleteProduct
-  };
+  }), [products, rawProducts, isLoading, error, isUpdating, pendingChanges, refreshProducts, handleAddProduct, handleUpdateProduct, handleDeleteProduct]);
 
   return (
     <ProductsContext.Provider value={value}>

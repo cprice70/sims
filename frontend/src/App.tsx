@@ -33,10 +33,10 @@ type ViewType = 'filaments' | 'parts' | 'printers' | 'products' | 'settings';
 
 const App = () => {
   // State from contexts
-  const { settings, isLoading: settingsLoading } = useSettings();
-  const { filaments, addFilament, isLoading: filamentsLoading } = useFilaments();
-  const { products, isLoading: productsLoading } = useProducts();
-  const { parts, addPart, isLoading: partsLoading } = useParts();
+  const { settings, isLoading: settingsLoading, error: settingsError } = useSettings();
+  const { filaments, addFilament, isLoading: filamentsLoading, error: filamentsError } = useFilaments();
+  const { products, isLoading: productsLoading, error: productsError } = useProducts();
+  const { parts, addPart, isLoading: partsLoading, error: partsError } = useParts();
   
   // Local state
   const [activeView, setActiveView] = useState<ViewType>('filaments');
@@ -107,6 +107,12 @@ const App = () => {
   
   if (isLoading) {
     return <LoadingScreen message="INITIALIZING SIMS..." />;
+  }
+
+  // Error handling: show error if any context has an error
+  const error = settingsError || filamentsError || productsError || partsError;
+  if (error) {
+    return <ErrorDisplay error={error} />;
   }
   
   return (
